@@ -17,7 +17,7 @@
  * Text Domain:       live-covid-update
  * License:           GPL v2 or later
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
- * Update URI:        https://example.com/my-plugin/
+ * Update URI:        https://github.com/Khalidwebmail/wp-plg-covid-update
  */
 
 class Covid_Update extends WP_Widget {
@@ -41,21 +41,8 @@ class Covid_Update extends WP_Widget {
 	 * @param array $instance
 	 */
 	public function widget( $args, $instance ) {
-		extract( $args );
-        $txt_title   = apply_filters( 'widget_title', $instance['txt_title'] );
-        $description = $instance['description'];
-
-        echo $before_widget;
-        if ( ! empty( $txt_title ) ) {
-            echo $before_title . $txt_title . $after_title;
-        }
-        echo $after_widget;
-
-        echo $before_widget;
-        if ( ! empty( $description ) ) {
-            echo  $description;
-        }
-        echo $after_widget;
+        echo "Ok got it";
+		$lcvr_covid_data = $this->lcvr_get_covid_report();
 	}
 
 	/**
@@ -66,18 +53,11 @@ class Covid_Update extends WP_Widget {
 	public function form( $instance ) {
 
         $txt_title   = !empty( $instance['txt_title'] ) ? $instance['txt_title'] : '';
-        $description = !empty( $instance['description'] ) ? $instance['description'] : '';
 		?>
-        <p>
-            <label for="<?php echo $this->get_field_id( 'txt_title' ) ?>">Widget title</label>
-            <input type="text" name="<?php echo $this->get_field_name( 'txt_title' ) ?>" id="<?php echo $this->get_field_id( 'txt_title' ) ?>" placeholder="Enter widget title" class="widefat" value="<?php esc_attr_e( $txt_title, 'live-covid-update' )?>">
-        </p>
-
-        <p>
-            <label for="<?php echo $this->get_field_id( 'description' ) ?>">Widget description</label>
-            
-            <textarea name="<?php echo $this->get_field_name( 'description' ) ?>" id="<?php echo $this->get_field_id( 'description' ) ?>" class="widefat"><?php esc_attr_e( $description, 'live-covid-update' )?></textarea>
-        </p>
+            <p>
+                <label for="<?php echo $this->get_field_id( 'txt_title' ) ?>">Widget title</label>
+                <input type="text" name="<?php echo $this->get_field_name( 'txt_title' ) ?>" id="<?php echo $this->get_field_id( 'txt_title' ) ?>" placeholder="Enter widget title" class="widefat" value="<?php esc_attr_e( $txt_title, 'live-covid-update' )?>">
+            </p>
         <?php
 	}
 
@@ -92,8 +72,6 @@ class Covid_Update extends WP_Widget {
 	public function update( $new_instance, $old_instance ) {
 		$instance = [];
         $instance['txt_title']       = ( !empty( $new_instance['txt_title'] ) ) ? strip_tags( $new_instance['txt_title'] ) : '';
-        $instance['description'] = ( !empty( $new_instance['description'] ) ) ? strip_tags( $new_instance['description'] ) : '';
- 
         return $instance;
 	}
 
@@ -102,6 +80,23 @@ class Covid_Update extends WP_Widget {
      */
     public function lcvr_register_widget(){
         register_widget( 'Covid_Update' ); 
+    }
+
+    // Pull live report using API 
+    public function lcvr_get_covid_report(){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.covid19api.com/summary');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+        $result = curl_exec($ch);
+        if ( curl_errno( $ch ) ) {
+            echo 'Error:' . curl_error( $ch );
+        }
+        curl_close( $ch );
+
+        echo "<pre>";
+        print_r($result);
+        die;
     }
 }
 
