@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Live covid update
  *
@@ -9,7 +10,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Live covid update
- * Plugin URI:        https://example.com/plugin-name
+ * Plugin URI:        https://github.com/Khalidwebmail/covid-update
  * Description:       Description of the plugin.
  * Version:           1.0.0
  * Author:            Khalid Ahmed
@@ -20,29 +21,86 @@
  * Update URI:        https://github.com/Khalidwebmail/wp-plg-covid-update
  */
 
-class Covid_Update extends WP_Widget {
-    /**
-	 * Sets up the widgets name etc
-	 */
-    public function __construct() {
-        parent::__construct(
-            'covid_update', // Base ID
+if( ! defined( 'ABSPATH' ) ){
+	exit;
+}
+
+class Covid_Update_Widget extends WP_Widget{
+	public function __construct(){
+		parent::__construct(
+			'covid_update', // Base ID
             'Live Covid Update', // Name
-            array( 'description' => __( 'Live covid update', 'live-covid-update' ), )
-        );
+            array( 'description' => __( 'Live covid update', 'live-covid-update' ) )
+		);
 
-        add_action( 'widgets_init', [ $this, 'lcvr_register_widget'] );
-    }
+		/**
+		 * Register new widget
+		 */
+		add_action( 'widgets_init', [ $this, 'lcr_register_widget' ] );
+	}
 
-    /**
+	/**
 	 * Outputs the content of the widget
 	 *
 	 * @param array $args
 	 * @param array $instance
 	 */
 	public function widget( $args, $instance ) {
-        echo "Ok got it";
-		$lcvr_covid_data = $this->lcvr_get_covid_report();
+        echo $args [ 'before_title' ];
+		if( ! empty( $instance[ 'title' ] ) ){
+			echo  $instance[ 'title' ];
+		}
+		echo $args [ 'after_title' ];
+
+		$lcr_covid_data = $this->lcr_get_covid_report();
+		$data = json_decode($lcr_covid_data);
+		$all_data = isset( $data->Global ) ? $data->Global : [];
+		$countries_data = isset( $data->Countries ) ? $data->Countries : [];
+		echo $args [ 'before_widget' ];
+
+		echo '<table class="table table-bordered">
+			<thead>
+				<tr>
+					<th>Total Confirmed</th>
+					<th>Total Death</th>
+					<th>Total Recovered</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>'.$all_data->TotalConfirmed.'</td>
+					<td>'.$all_data->TotalDeaths.'</td>
+					<td>'.$all_data->TotalRecovered.'</td>
+				</tr>
+			</tbody>
+		</table>';
+
+		$countries_data_list = '';
+		foreach( $countries_data as $country_data ){
+			$countries_data_list .= '<tr>
+			<td>'.$country_data->CountryCode.'</td>
+				<td>'.$country_data->Country.'</td>
+				<td>'.$country_data->TotalConfirmed.'</td>
+				<td>'.$country_data->TotalDeaths.'</td>
+				<td>'.$country_data->TotalRecovered.'</td>
+			</tr>';
+		}
+
+		echo '<table class="table table-bordered">
+			<thead>
+				<tr>
+					<th>Country Code</th>
+					<th>Country Name</th>
+					<th>Total Confirmed</th>
+					<th>Total Death</th>
+					<th>Total Recovered</th>
+				</tr>
+			</thead>
+			<tbody>
+				'.$countries_data_list.'
+			</tbody>
+	  	</table>';
+		echo $args [ 'after_widget' ];
 	}
 
 	/**
@@ -51,14 +109,13 @@ class Covid_Update extends WP_Widget {
 	 * @param array $instance The widget options
 	 */
 	public function form( $instance ) {
-
-        $txt_title   = !empty( $instance['txt_title'] ) ? $instance['txt_title'] : '';
+		$txt_title   = !empty( $instance['txt_title'] ) ? $instance['txt_title'] : '';
 		?>
-            <p>
+			<p>
                 <label for="<?php echo $this->get_field_id( 'txt_title' ) ?>">Widget title</label>
                 <input type="text" name="<?php echo $this->get_field_name( 'txt_title' ) ?>" id="<?php echo $this->get_field_id( 'txt_title' ) ?>" placeholder="Enter widget title" class="widefat" value="<?php esc_attr_e( $txt_title, 'live-covid-update' )?>">
             </p>
-        <?php
+		<?php
 	}
 
 	/**
@@ -69,35 +126,34 @@ class Covid_Update extends WP_Widget {
 	 *
 	 * @return array
 	 */
-	public function update( $new_instance, $old_instance ) {
+	public function update( $new_instance, $old_instance ){
 		$instance = [];
-        $instance['txt_title']       = ( !empty( $new_instance['txt_title'] ) ) ? strip_tags( $new_instance['txt_title'] ) : '';
+        $instance['txt_title'] = ( !empty( $new_instance['txt_title'] ) ) ? strip_tags( $new_instance['txt_title'] ) : '';
         return $instance;
 	}
 
     /**
      * Register widget with WordPress.
      */
-    public function lcvr_register_widget(){
-        register_widget( 'Covid_Update' ); 
+    public function lcr_register_widget(){
+        register_widget( 'Covid_Update_Widget' );
     }
 
-    // Pull live report using API 
-    public function lcvr_get_covid_report(){
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.covid19api.com/summary');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	/**
+	 * Pull live report using API
+	 */
+    public function lcr_get_covid_report(){
+        $lcr_ch = curl_init();
+        curl_setopt( $lcr_ch, CURLOPT_URL, 'https://api.covid19api.com/summary' );
+        curl_setopt( $lcr_ch, CURLOPT_RETURNTRANSFER, 1 );
 
-        $result = curl_exec($ch);
-        if ( curl_errno( $ch ) ) {
-            echo 'Error:' . curl_error( $ch );
+        $lcr_result = curl_exec( $lcr_ch );
+        if ( curl_errno( $lcr_ch ) ) {
+            echo 'Error:' . curl_error( $lcr_ch );
         }
-        curl_close( $ch );
-
-        echo "<pre>";
-        print_r($result);
-        die;
+        curl_close( $lcr_ch );
+		return $lcr_result;
     }
 }
 
-$lcvr_widget = new Covid_Update();
+$lcr_widget = new Covid_Update_Widget();
